@@ -27,7 +27,36 @@ function field(form, key) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function submit(request, env, url) {
+async function notifyOwner(env, name, email, service, message) {
+  try {
+    const endpoint = new URL(env.PORTFOLIO_MAIL_URL);
+    if (endpoint.origin !== "https://script.google.com" ||
+        !/^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint.pathname) ||
+        endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+      throw new Error("Invalid Gmail integration URL");
+    }
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.PORTFOLIO_MAIL_SECRET,
+        name,
+        email,
+        service: services[service],
+        message,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok || (await response.json()).ok !== true) {
+      throw new Error("Google Apps Script declined the notification");
+    }
+  } catch {
+    console.warn("Gmail notification failed. Inquiry remains in the portfolio inbox.");
+  }
+}
+
+async function submit(request, env, url, ctx) {
   const origin = request.headers.get("Origin");
   if (origin && origin !== url.origin) {
     return page("Request blocked", "<p>Please submit the form from the portfolio page.</p>", 403);
@@ -73,6 +102,9 @@ async function submit(request, env, url) {
   } catch {
     return page("Inquiry could not be saved", '<p>Try again or email <a href="mailto:abasphai2053@gmail.com">abasphai2053@gmail.com</a>.</p>', 503);
   }
+  if (env.PORTFOLIO_MAIL_URL && env.PORTFOLIO_MAIL_SECRET?.length >= 32) {
+    ctx.waitUntil(notifyOwner(env, name, email, service, message));
+  }
   return new Response(null, { status: 303, headers: { Location: "/inquiry-sent", "Cache-Control": "no-store" } });
 }
 
@@ -99,9 +131,9 @@ async function inbox(request, env) {
 
 export function createWorker(assets) {
   return {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
       const url = new URL(request.url);
-      if (request.method === "POST" && url.pathname === "/inquiries") return submit(request, env, url);
+      if (request.method === "POST" && url.pathname === "/inquiries") return submit(request, env, url, ctx);
       if (request.method !== "GET" && request.method !== "HEAD") {
         return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
       }
