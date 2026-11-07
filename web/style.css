@@ -358,9 +358,9 @@ nav a:hover,
   }
 
   .hero::after {
-    inset: clamp(.75rem, 3vw, 1.25rem) clamp(.75rem, 3vw, 1.25rem) auto auto;
+    inset: clamp(2.8rem, 16vw, 6.25rem) auto auto clamp(1.4rem, 8.5vw, 3.5rem);
     z-index: 0;
-    width: clamp(2.5rem, 14vw, 4.5rem);
+    width: clamp(3.5rem, 19vw, 5.5rem);
     height: auto;
     aspect-ratio: 1;
     background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7' y='10' width='50' height='34' rx='5'/%3E%3Cpath d='M32 44v10m-12 0h24M15 37h34'/%3E%3C/svg%3E");
